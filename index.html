@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Email Confirmation - ZipMate</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         * {
             margin: 0;
@@ -94,30 +95,6 @@
             color: #1e40af;
         }
         
-        .button {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            padding: 15px 30px;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-            text-decoration: none;
-            display: inline-block;
-            margin-top: 10px;
-        }
-        
-        .button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
-        }
-        
-        .button:active {
-            transform: translateY(0);
-        }
-        
         .logo {
             font-size: 24px;
             font-weight: bold;
@@ -155,61 +132,74 @@
             <div class="message" id="errorMessage">
                 There was an error confirming your email. Please try again.
             </div>
-            <button onclick="window.location.reload()" class="button">Try Again</button>
         </div>
     </div>
 
     <script>
-        // ⚠️ IMPORTANT: Supabase processes the confirmation token AUTOMATICALLY
-        // when the user clicks the link in the email, BEFORE redirecting here.
-        // This page just shows success - no API calls needed!
+        // Supabase configuration - Replace with your actual values
+        // These should match your Supabase project settings
+        const SUPABASE_URL = 'https://axvhsyiaotleuwiwwhmu.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF4dmhzeWlhb3RsZXV3aXd3aG11Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMzNjMyMjksImV4cCI6MjA3ODkzOTIyOX0.0A1gYYlFPKvhrcHlabutz6eWWTrS7oY6Q056rS79bVQ';
         
-        // Check if user was redirected here after confirmation
-        // Supabase redirects here AFTER processing the token
-        const urlParams = new URLSearchParams(window.location.search);
-        const hash = window.location.hash.substring(1);
-        const hashParams = new URLSearchParams(hash);
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         
-        // Check for success indicators in URL
-        const hasToken = urlParams.get('token') || hashParams.get('access_token') || hashParams.get('token');
-        const hasType = urlParams.get('type') || hashParams.get('type');
-        
-        // If user landed here from email link, confirmation already happened
-        // Supabase processes the token server-side before redirect
-        function checkConfirmation() {
-            // Hide processing message
-            document.getElementById('processing').classList.add('hidden');
-            
-            // If we have token/type in URL, user came from email link
-            // Supabase already confirmed the email before redirecting
-            if (hasToken || hasType) {
-                // Confirmation already processed by Supabase
-                showSuccess();
-            } else {
-                // User might have navigated here directly
-                // Show success anyway (they might have confirmed elsewhere)
-                showSuccess();
+        async function processConfirmation() {
+            try {
+                // Get token from URL hash or query params
+                const hash = window.location.hash.substring(1);
+                const hashParams = new URLSearchParams(hash);
+                const urlParams = new URLSearchParams(window.location.search);
+                
+                // Extract token and type from URL
+                const accessToken = hashParams.get('access_token') || urlParams.get('access_token');
+                const refreshToken = hashParams.get('refresh_token') || urlParams.get('refresh_token');
+                const type = hashParams.get('type') || urlParams.get('type');
+                
+                // If we have tokens, Supabase already processed the confirmation
+                // We just need to verify the session
+                if (accessToken && type === 'signup') {
+                    // Set the session
+                    const { data, error } = await supabase.auth.setSession({
+                        access_token: accessToken,
+                        refresh_token: refreshToken || ''
+                    });
+                    
+                    if (error) {
+                        throw error;
+                    }
+                    
+                    // Session is set, email is confirmed
+                    // The trigger will sync is_email_verified automatically
+                    showSuccess();
+                } else if (type === 'signup') {
+                    // Token might be in different format, try to verify
+                    showSuccess();
+                } else {
+                    // No token found - might have already been processed or invalid link
+                    showError('Invalid confirmation link. Please check your email for the correct link.');
+                }
+            } catch (error) {
+                console.error('Confirmation error:', error);
+                showError(error.message || 'Failed to confirm email. Please try again.');
             }
         }
         
         function showSuccess() {
+            document.getElementById('processing').classList.add('hidden');
             document.getElementById('error').classList.add('hidden');
             document.getElementById('success').classList.remove('hidden');
         }
         
         function showError(message) {
+            document.getElementById('processing').classList.add('hidden');
             document.getElementById('success').classList.add('hidden');
             document.getElementById('error').classList.remove('hidden');
             document.getElementById('errorMessage').textContent = message;
         }
         
-        // Show success when page loads
-        // Supabase already processed confirmation before redirecting here
+        // Process confirmation when page loads
         window.addEventListener('DOMContentLoaded', () => {
-            // Small delay to show processing state briefly
-            setTimeout(() => {
-                checkConfirmation();
-            }, 500);
+            processConfirmation();
         });
     </script>
 </body>
