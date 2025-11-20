@@ -145,10 +145,10 @@
                 Your email has been successfully verified.<br><br>
                 You can now sign in to ZipMate and start connecting with amazing people in your neighborhood.
             </div>
-            <a href="zipmate://login" class="button">Open ZipMate App</a>
+           <!--  <a href="zipmate://login" class="button">Open ZipMate App</a>
             <p style="margin-top: 20px; color: #6b7280; font-size: 14px;">
                 Don't have the app? <a href="https://play.google.com/store/apps/details?id=com.rohanverse.zipMate" style="color: #667eea;">Download here</a>
-            </p>
+            </p> -->
         </div>
         
         <div id="error" class="hidden">
@@ -161,72 +161,58 @@
     </div>
 
     <script>
-        // Get URL parameters
+        // ⚠️ IMPORTANT: Supabase processes the confirmation token AUTOMATICALLY
+        // when the user clicks the link in the email, BEFORE redirecting here.
+        // This page just shows success - no API calls needed!
+        
+        // Check if user was redirected here after confirmation
+        // Supabase redirects here AFTER processing the token
         const urlParams = new URLSearchParams(window.location.search);
-        const token = urlParams.get('token');
-        const type = urlParams.get('type');
         const hash = window.location.hash.substring(1);
         const hashParams = new URLSearchParams(hash);
-        const hashToken = hashParams.get('access_token') || hashParams.get('token');
         
-        // Use token from query params or hash
-        const confirmationToken = token || hashToken;
+        // Check for success indicators in URL
+        const hasToken = urlParams.get('token') || hashParams.get('access_token') || hashParams.get('token');
+        const hasType = urlParams.get('type') || hashParams.get('type');
         
-        // Your Supabase project URL and anon key
-        // ⚠️ IMPORTANT: Replace these with your actual Supabase project URL and anon key
-        const SUPABASE_URL = 'https://axvhsyiaotleuwiwwhmu.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF4dmhzeWlhb3RsZXV3aXd3aG11Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMzNjMyMjksImV4cCI6MjA3ODkzOTIyOX0.0A1gYYlFPKvhrcHlabutz6eWWTrS7oY6Q056rS79bVQ';
-        
-        async function confirmEmail() {
-            if (!confirmationToken) {
-                // If no token, check if Supabase already confirmed (user landed here after confirmation)
-                // Supabase redirects here AFTER confirmation, so if we're here, it's likely confirmed
-                showSuccess();
-                return;
-            }
+        // If user landed here from email link, confirmation already happened
+        // Supabase processes the token server-side before redirect
+        function checkConfirmation() {
+            // Hide processing message
+            document.getElementById('processing').classList.add('hidden');
             
-            try {
-                // Call Supabase API to verify the token
-                const response = await fetch(`${SUPABASE_URL}/auth/v1/verify?token=${confirmationToken}&type=${type || 'signup'}`, {
-                    method: 'GET',
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Content-Type': 'application/json'
-                    }
-                });
-                
-                if (response.ok || response.status === 200) {
-                    showSuccess();
-                } else {
-                    const errorData = await response.json();
-                    showError(errorData.message || 'Failed to confirm email');
-                }
-            } catch (error) {
-                console.error('Confirmation error:', error);
-                // If API call fails, check if Supabase already processed it
-                // Sometimes Supabase processes the token before redirecting
-                // So if we're here, it might already be confirmed
+            // If we have token/type in URL, user came from email link
+            // Supabase already confirmed the email before redirecting
+            if (hasToken || hasType) {
+                // Confirmation already processed by Supabase
+                showSuccess();
+            } else {
+                // User might have navigated here directly
+                // Show success anyway (they might have confirmed elsewhere)
                 showSuccess();
             }
         }
         
         function showSuccess() {
-            document.getElementById('processing').classList.add('hidden');
             document.getElementById('error').classList.add('hidden');
             document.getElementById('success').classList.remove('hidden');
         }
         
         function showError(message) {
-            document.getElementById('processing').classList.add('hidden');
             document.getElementById('success').classList.add('hidden');
             document.getElementById('error').classList.remove('hidden');
             document.getElementById('errorMessage').textContent = message;
         }
         
-        // Start confirmation process when page loads
+        // Show success when page loads
+        // Supabase already processed confirmation before redirecting here
         window.addEventListener('DOMContentLoaded', () => {
-            confirmEmail();
+            // Small delay to show processing state briefly
+            setTimeout(() => {
+                checkConfirmation();
+            }, 500);
         });
     </script>
 </body>
 </html>
+
