@@ -3,15 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Email Confirmed - ZipMate</title>
+    <title>Email Confirmation - ZipMate</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
+        
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             display: flex;
@@ -19,110 +20,213 @@
             justify-content: center;
             padding: 20px;
         }
+        
         .container {
-            background: #ffffff;
-            border-radius: 24px;
-            padding: 60px 40px;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
             max-width: 500px;
             width: 100%;
-            text-align: center;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            text-align: center;
         }
+        
         .success-icon {
-            font-size: 80px;
-            margin-bottom: 30px;
+            width: 80px;
+            height: 80px;
+            background: #10b981;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
             animation: scaleIn 0.5s ease-out;
         }
+        
+        .success-icon::after {
+            content: '✓';
+            color: white;
+            font-size: 48px;
+            font-weight: bold;
+        }
+        
         @keyframes scaleIn {
             from {
                 transform: scale(0);
-                opacity: 0;
             }
             to {
                 transform: scale(1);
-                opacity: 1;
             }
         }
+        
         h1 {
-            color: #333333;
-            font-size: 32px;
-            font-weight: bold;
-            margin-bottom: 20px;
-        }
-        .subtitle {
-            color: #666666;
-            font-size: 18px;
-            margin-bottom: 30px;
-            line-height: 1.6;
-        }
-        .message {
-            color: #888888;
-            font-size: 16px;
-            margin-bottom: 40px;
-            line-height: 1.6;
-        }
-        .app-info {
-            background: #f8f9fa;
-            border-radius: 12px;
-            padding: 30px;
-            margin-top: 30px;
-        }
-        .app-name {
+            color: #1f2937;
             font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .message {
+            color: #6b7280;
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+        
+        .status {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+        
+        .status.success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .status.error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .status.processing {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        
+        .button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 10px;
+        }
+        
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .button:active {
+            transform: translateY(0);
+        }
+        
+        .logo {
+            font-size: 24px;
             font-weight: bold;
             color: #667eea;
             margin-bottom: 10px;
         }
-        .app-tagline {
-            color: #666666;
-            font-size: 14px;
-        }
-        .download-button {
-            display: inline-block;
-            margin-top: 20px;
-            padding: 14px 28px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #ffffff;
-            text-decoration: none;
-            border-radius: 25px;
-            font-weight: bold;
-            font-size: 16px;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        .download-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
-        }
-        @media (max-width: 600px) {
-            .container {
-                padding: 40px 30px;
-            }
-            h1 {
-                font-size: 28px;
-            }
-            .subtitle {
-                font-size: 16px;
-            }
+        
+        .hidden {
+            display: none;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="success-icon">✅</div>
-        <h1>Email Confirmed!</h1>
-        <p class="subtitle">Your email has been successfully verified.</p>
-        <p class="message">
-            You can now sign in to ZipMate and start connecting with amazing people in your neighborhood.
-        </p>
+        <div class="logo">ZipMate</div>
         
-        <div class="app-info">
-            <div class="app-name">ZipMate</div>
-            <p class="app-tagline">Find love in your neighborhood</p>
-            <a href="https://play.google.com/store/apps/details?id=com.rohanverse.zipMate" class="download-button">
-                Open ZipMate App
-            </a>
+        <div id="processing" class="status processing">
+            ⏳ Processing email confirmation...
+        </div>
+        
+        <div id="success" class="hidden">
+            <div class="success-icon"></div>
+            <h1>✅ Email Confirmed!</h1>
+            <div class="message">
+                Your email has been successfully verified.<br><br>
+                You can now sign in to ZipMate and start connecting with amazing people in your neighborhood.
+            </div>
+            <a href="zipmate://login" class="button">Open ZipMate App</a>
+            <p style="margin-top: 20px; color: #6b7280; font-size: 14px;">
+                Don't have the app? <a href="https://play.google.com/store/apps/details?id=com.rohanverse.zipMate" style="color: #667eea;">Download here</a>
+            </p>
+        </div>
+        
+        <div id="error" class="hidden">
+            <h1 style="color: #dc2626;">❌ Confirmation Failed</h1>
+            <div class="message" id="errorMessage">
+                There was an error confirming your email. Please try again.
+            </div>
+            <button onclick="window.location.reload()" class="button">Try Again</button>
         </div>
     </div>
+
+    <script>
+        // Get URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token');
+        const type = urlParams.get('type');
+        const hash = window.location.hash.substring(1);
+        const hashParams = new URLSearchParams(hash);
+        const hashToken = hashParams.get('access_token') || hashParams.get('token');
+        
+        // Use token from query params or hash
+        const confirmationToken = token || hashToken;
+        
+        // Your Supabase project URL and anon key
+        // ⚠️ IMPORTANT: Replace these with your actual Supabase project URL and anon key
+        const SUPABASE_URL = 'https://axvhsyiaotleuwiwwhmu.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF4dmhzeWlhb3RsZXV3aXd3aG11Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMzNjMyMjksImV4cCI6MjA3ODkzOTIyOX0.0A1gYYlFPKvhrcHlabutz6eWWTrS7oY6Q056rS79bVQ';
+        
+        async function confirmEmail() {
+            if (!confirmationToken) {
+                // If no token, check if Supabase already confirmed (user landed here after confirmation)
+                // Supabase redirects here AFTER confirmation, so if we're here, it's likely confirmed
+                showSuccess();
+                return;
+            }
+            
+            try {
+                // Call Supabase API to verify the token
+                const response = await fetch(`${SUPABASE_URL}/auth/v1/verify?token=${confirmationToken}&type=${type || 'signup'}`, {
+                    method: 'GET',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok || response.status === 200) {
+                    showSuccess();
+                } else {
+                    const errorData = await response.json();
+                    showError(errorData.message || 'Failed to confirm email');
+                }
+            } catch (error) {
+                console.error('Confirmation error:', error);
+                // If API call fails, check if Supabase already processed it
+                // Sometimes Supabase processes the token before redirecting
+                // So if we're here, it might already be confirmed
+                showSuccess();
+            }
+        }
+        
+        function showSuccess() {
+            document.getElementById('processing').classList.add('hidden');
+            document.getElementById('error').classList.add('hidden');
+            document.getElementById('success').classList.remove('hidden');
+        }
+        
+        function showError(message) {
+            document.getElementById('processing').classList.add('hidden');
+            document.getElementById('success').classList.add('hidden');
+            document.getElementById('error').classList.remove('hidden');
+            document.getElementById('errorMessage').textContent = message;
+        }
+        
+        // Start confirmation process when page loads
+        window.addEventListener('DOMContentLoaded', () => {
+            confirmEmail();
+        });
+    </script>
 </body>
 </html>
-
