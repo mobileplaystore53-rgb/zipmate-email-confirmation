@@ -52,6 +52,16 @@
                 Your email is verified. Open the ZipMate app and sign in with your password.
             </p>
         </div>
+        <div id="idle" class="hidden">
+            <h1>Open the link from your email</h1>
+            <p class="message">
+                This page only works when you tap <strong>Confirm my email</strong> in the ZipMate signup email.
+                Opening this URL by itself cannot verify your account.
+            </p>
+            <p class="message" style="font-size:14px;">
+                Already confirmed? Open the ZipMate app and sign in.
+            </p>
+        </div>
         <div id="error" class="hidden">
             <h1 style="color:#dc2626;">Confirmation failed</h1>
             <p class="message" id="errorMessage">There was a problem confirming your email.</p>
@@ -62,17 +72,34 @@
         const SUPABASE_URL = 'https://axvhsyiaotleuwiwwhmu.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF4dmhzeWlhb3RsZXV3aXd3aG11Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMzNjMyMjksImV4cCI6MjA3ODkzOTIyOX0.0A1gYYlFPKvhrcHlabutz6eWWTrS7oY6Q056rS79bVQ';
 
+        function hideAll() {
+            ['processing', 'success', 'error', 'idle'].forEach((id) => {
+                document.getElementById(id).classList.add('hidden');
+            });
+        }
+
         function showSuccess() {
-            document.getElementById('processing').classList.add('hidden');
-            document.getElementById('error').classList.add('hidden');
+            hideAll();
             document.getElementById('success').classList.remove('hidden');
         }
 
+        function showIdle() {
+            hideAll();
+            document.getElementById('idle').classList.remove('hidden');
+        }
+
         function showError(message) {
-            document.getElementById('processing').classList.add('hidden');
-            document.getElementById('success').classList.add('hidden');
+            hideAll();
             document.getElementById('error').classList.remove('hidden');
             document.getElementById('errorMessage').textContent = message;
+        }
+
+        function hasConfirmationPayload(query, hash) {
+            if (query.get('token_hash') || hash.get('token_hash')) return true;
+            if (query.get('access_token') || hash.get('access_token')) return true;
+            if (query.get('code')) return true;
+            if (query.get('token') || hash.get('token')) return true;
+            return false;
         }
 
         function getSupabaseClient() {
@@ -102,8 +129,28 @@
             const type = query.get('type') || hash.get('type') || 'signup';
 
             if (tokenHash) {
+                const typesToTry = [type, 'signup', 'email'].filter(
+                    (t, i, arr) => t && arr.indexOf(t) === i
+                );
+                let lastError = null;
+                for (const otpType of typesToTry) {
+                    const { error } = await supabase.auth.verifyOtp({
+                        token_hash: tokenHash,
+                        type: otpType,
+                    });
+                    if (!error) {
+                        showSuccess();
+                        return;
+                    }
+                    lastError = error;
+                }
+                throw lastError || new Error('Could not verify this confirmation link.');
+            }
+
+            const legacyToken = query.get('token') || hash.get('token');
+            if (legacyToken && type) {
                 const { error } = await supabase.auth.verifyOtp({
-                    token_hash: tokenHash,
+                    token: legacyToken,
                     type: type,
                 });
                 if (error) throw error;
@@ -133,7 +180,11 @@
                 return;
             }
 
-            showError('Invalid or expired confirmation link. Request a new confirmation email from the app.');
+            if (!hasConfirmationPayload(query, hash)) {
+                showIdle();
+                return;
+            }
+            showError('Invalid or expired confirmation link. In the app, tap Resend email and use the newest link.');
         }
 
         window.addEventListener('DOMContentLoaded', () => {
