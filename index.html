@@ -4,204 +4,144 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Email Confirmation - ZipMate</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- UMD build — required for supabase.createClient in the browser -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #E94F7B 0%, #FF8A5B 55%, #2BB7A8 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 20px;
         }
-        
         .container {
-            background: white;
+            background: #fff;
             border-radius: 20px;
             padding: 40px;
             max-width: 500px;
             width: 100%;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
             text-align: center;
         }
-        
+        .logo { font-size: 24px; font-weight: bold; color: #E94F7B; margin-bottom: 16px; }
+        .status { padding: 15px; border-radius: 10px; margin-bottom: 20px; font-weight: 500; }
+        .status.processing { background: #dbeafe; color: #1e40af; }
+        .status.success { background: #d1fae5; color: #065f46; }
+        .status.error { background: #fee2e2; color: #991b1b; }
+        h1 { color: #1f2937; font-size: 24px; margin-bottom: 10px; }
+        .message { color: #6b7280; font-size: 16px; line-height: 1.6; margin-bottom: 16px; }
+        .hidden { display: none; }
         .success-icon {
-            width: 80px;
-            height: 80px;
-            background: #10b981;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 20px;
-            animation: scaleIn 0.5s ease-out;
-        }
-        
-        .success-icon::after {
-            content: '✓';
-            color: white;
-            font-size: 48px;
-            font-weight: bold;
-        }
-        
-        @keyframes scaleIn {
-            from {
-                transform: scale(0);
-            }
-            to {
-                transform: scale(1);
-            }
-        }
-        
-        h1 {
-            color: #1f2937;
-            font-size: 28px;
-            margin-bottom: 10px;
-        }
-        
-        .message {
-            color: #6b7280;
-            font-size: 16px;
-            line-height: 1.6;
-            margin-bottom: 30px;
-        }
-        
-        .status {
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            font-weight: 500;
-        }
-        
-        .status.success {
-            background: #d1fae5;
-            color: #065f46;
-        }
-        
-        .status.error {
-            background: #fee2e2;
-            color: #991b1b;
-        }
-        
-        .status.processing {
-            background: #dbeafe;
-            color: #1e40af;
-        }
-        
-        .logo {
-            font-size: 24px;
-            font-weight: bold;
-            color: #667eea;
-            margin-bottom: 10px;
-        }
-        
-        .hidden {
-            display: none;
+            width: 72px; height: 72px; background: #10b981; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 16px; color: #fff; font-size: 40px; font-weight: bold;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="logo">ZipMate</div>
-        
-        <div id="processing" class="status processing">
-            ⏳ Processing email confirmation...
-        </div>
-        
+        <div id="processing" class="status processing">Processing email confirmation…</div>
         <div id="success" class="hidden">
-            <div class="success-icon"></div>
-            <h1>✅ Email Confirmed!</h1>
-            <div class="message">
-                Your email has been successfully verified.<br><br>
-                You can now sign in to ZipMate and start connecting with amazing people in your neighborhood.
-            </div>
-            <p style="margin-top: 20px; color: #6b7280; font-size: 14px;">
-                Open the ZipMate app to sign in.
+            <div class="success-icon">✓</div>
+            <h1>Email confirmed</h1>
+            <p class="message">
+                Your email is verified. Open the ZipMate app and sign in with your password.
             </p>
         </div>
-        
         <div id="error" class="hidden">
-            <h1 style="color: #dc2626;">❌ Confirmation Failed</h1>
-            <div class="message" id="errorMessage">
-                There was an error confirming your email. Please try again.
-            </div>
+            <h1 style="color:#dc2626;">Confirmation failed</h1>
+            <p class="message" id="errorMessage">There was a problem confirming your email.</p>
         </div>
     </div>
 
     <script>
-        // Supabase configuration - Replace with your actual values
-        // These should match your Supabase project settings
         const SUPABASE_URL = 'https://axvhsyiaotleuwiwwhmu.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF4dmhzeWlhb3RsZXV3aXd3aG11Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMzNjMyMjksImV4cCI6MjA3ODkzOTIyOX0.0A1gYYlFPKvhrcHlabutz6eWWTrS7oY6Q056rS79bVQ';
-        
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        
-        async function processConfirmation() {
-            try {
-                // Get token from URL hash or query params
-                const hash = window.location.hash.substring(1);
-                const hashParams = new URLSearchParams(hash);
-                const urlParams = new URLSearchParams(window.location.search);
-                
-                // Extract token and type from URL
-                const accessToken = hashParams.get('access_token') || urlParams.get('access_token');
-                const refreshToken = hashParams.get('refresh_token') || urlParams.get('refresh_token');
-                const type = hashParams.get('type') || urlParams.get('type');
-                
-                // If we have tokens, Supabase already processed the confirmation
-                // We just need to verify the session
-                if (accessToken && type === 'signup') {
-                    // Set the session
-                    const { data, error } = await supabase.auth.setSession({
-                        access_token: accessToken,
-                        refresh_token: refreshToken || ''
-                    });
-                    
-                    if (error) {
-                        throw error;
-                    }
-                    
-                    // Session is set, email is confirmed
-                    // The trigger will sync is_email_verified automatically
-                    showSuccess();
-                } else if (type === 'signup') {
-                    // Token might be in different format, try to verify
-                    showSuccess();
-                } else {
-                    // No token found - might have already been processed or invalid link
-                    showError('Invalid confirmation link. Please check your email for the correct link.');
-                }
-            } catch (error) {
-                console.error('Confirmation error:', error);
-                showError(error.message || 'Failed to confirm email. Please try again.');
-            }
-        }
-        
+
         function showSuccess() {
             document.getElementById('processing').classList.add('hidden');
             document.getElementById('error').classList.add('hidden');
             document.getElementById('success').classList.remove('hidden');
         }
-        
+
         function showError(message) {
             document.getElementById('processing').classList.add('hidden');
             document.getElementById('success').classList.add('hidden');
             document.getElementById('error').classList.remove('hidden');
             document.getElementById('errorMessage').textContent = message;
         }
-        
-        // Process confirmation when page loads
+
+        function getSupabaseClient() {
+            if (!window.supabase || typeof window.supabase.createClient !== 'function') {
+                throw new Error('Supabase client failed to load. Check the script URL.');
+            }
+            return window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        }
+
+        async function processConfirmation() {
+            const supabase = getSupabaseClient();
+            const query = new URLSearchParams(window.location.search);
+            const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+
+            const errorDescription =
+                hash.get('error_description') ||
+                query.get('error_description') ||
+                hash.get('error') ||
+                query.get('error');
+            if (errorDescription) {
+                showError(decodeURIComponent(errorDescription));
+                return;
+            }
+
+            // Current GoTrue links: ?token_hash=...&type=signup
+            const tokenHash = query.get('token_hash') || hash.get('token_hash');
+            const type = query.get('type') || hash.get('type') || 'signup';
+
+            if (tokenHash) {
+                const { error } = await supabase.auth.verifyOtp({
+                    token_hash: tokenHash,
+                    type: type,
+                });
+                if (error) throw error;
+                showSuccess();
+                return;
+            }
+
+            // Legacy / implicit redirect: #access_token=...&refresh_token=...
+            const accessToken = hash.get('access_token') || query.get('access_token');
+            const refreshToken = hash.get('refresh_token') || query.get('refresh_token');
+            if (accessToken) {
+                const { error } = await supabase.auth.setSession({
+                    access_token: accessToken,
+                    refresh_token: refreshToken || '',
+                });
+                if (error) throw error;
+                showSuccess();
+                return;
+            }
+
+            // PKCE: ?code=...
+            const code = query.get('code');
+            if (code) {
+                const { error } = await supabase.auth.exchangeCodeForSession(code);
+                if (error) throw error;
+                showSuccess();
+                return;
+            }
+
+            showError('Invalid or expired confirmation link. Request a new confirmation email from the app.');
+        }
+
         window.addEventListener('DOMContentLoaded', () => {
-            processConfirmation();
+            processConfirmation().catch((err) => {
+                console.error('Confirmation error:', err);
+                showError(err.message || 'Failed to confirm email. Try signing in or resend confirmation from the app.');
+            });
         });
     </script>
 </body>
 </html>
-
